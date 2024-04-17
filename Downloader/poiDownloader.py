@@ -4,7 +4,7 @@ import requests
 # with open('outputfile.json', 'wb') as outf:
 #     outf.write(response.content)
 
-def getPoisCityRadius(cityName, radius, apikey="5ae2e3f221c38a28845f05b6975076af4d407c5597b65a8c85c662b7"):
+def getPoisCityRadius(cityName, radius, apikey):
     request = "http://api.opentripmap.com/0.1/en/places/geoname?name=" + cityName + "&apikey=" + apikey
     response = requests.get(request)
     dict = response.json()

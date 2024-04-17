@@ -1,7 +1,7 @@
 from nltk.tokenize import word_tokenize
 from nltk.stem import WordNetLemmatizer
-# import nltk
 
+# import nltk
 # nltk.download('wordnet')
 # nltk.download('punkt')
 
