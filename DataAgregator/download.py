@@ -4,6 +4,9 @@ url ="https://docs.google.com/spreadsheets/d/1PqjRuyqeDIWK5SMlIMgkXdOzOWDCPiII3Y
 
 form_agg = FormDataAgregator(FormCSV(url))
 # print(form_agg.get_data())
-print(form_agg.get_random_single_row())
+ex = form_agg.get_random_single_row()['places']
+ex = ex[list(ex.keys())[0]]
 
+with open("../Data/doc1.txt", 'w') as f:
+    f.write(ex)
 
