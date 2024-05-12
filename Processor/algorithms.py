@@ -8,7 +8,7 @@ from sklearn.decomposition import TruncatedSVD
 def bag_of_words(documents: list[str]) -> pd.DataFrame:
     bow = {}
     for i, d in enumerate(documents):
-        words = basic.preprocessKinds(d)
+        words = basic.tokenize(basic.preprocess(d))
         for key in words:
             bow[key] = bow.get(key, [0] * (len(documents) + 1))
             bow[key][i] += 1
@@ -19,7 +19,7 @@ def bag_of_words(documents: list[str]) -> pd.DataFrame:
     return bow_df
 
 
-def lsa(documents: list[str]) -> {}:
+def lsa(documents: list[str]) -> pd.DataFrame:
     tokenizer = RegexpTokenizer(r'\w+')
     tfidf = TfidfVectorizer(lowercase=True,
                             stop_words='english',
@@ -37,7 +37,23 @@ def lsa(documents: list[str]) -> {}:
         top_terms_key = sorted(zipped, key=lambda t: t[1], reverse=True)[:5]
         top_terms_list = list(dict(top_terms_key).keys())
         lsa_out["Topic " + str(index)] = top_terms_list
-    return lsa_out
+    return pd.DataFrame(lsa_out)
+
+
+def tfidf(documents: list[str], text_titles: list[str]) -> {}:
+    tokenizer = RegexpTokenizer(r'\w+')
+    tfidf_vectorizer = TfidfVectorizer(lowercase=True,
+                            stop_words='english',
+                            ngram_range=(1, 1),
+                            tokenizer=tokenizer.tokenize)
+    tfidf_vector = tfidf_vectorizer.fit_transform(documents)
+    tfidf_df = pd.DataFrame(tfidf_vector.toarray(), index=text_titles, columns=tfidf_vectorizer.get_feature_names_out())
+    # tfidf_df.loc['00_Document Frequency'] = (tfidf_df > 0).sum()
+    tfidf_df.stack().reset_index()
+    tfidf_df = tfidf_df.stack().reset_index()
+    tfidf_df = tfidf_df.rename(columns={0: 'tfidf', 'level_0': 'document', 'level_1': 'term', 'level_2': 'term'})
+    # top_tfidf = tfidf_df.sort_values(by=['document', 'tfidf'], ascending=[True, False]).groupby(['document']).head(10)
+    return tfidf_df
 
 
 doc_contents = []
@@ -46,6 +62,12 @@ file_names = ["doc1.txt", "doc2.txt", "doc3.txt"]
 for file_name in file_names:
     with open("../Data/" + file_name, "r") as file:
         doc_contents.append(file.read())
-
-print("\nBag of Words algorithm:\n\n", bag_of_words(doc_contents))
-print("\n\nLatent Semantic Indexing/Analysis algorithm:\n\n", pd.DataFrame(lsa(doc_contents)))
+bow_out = bag_of_words(doc_contents)
+lsa_out = lsa(doc_contents)
+tfidf_out = tfidf(doc_contents, file_names)
+print("\nBag of Words algorithm:\n\n", bow_out)
+print("\n\nLatent Semantic Indexing/Analysis algorithm:\n\n", lsa_out)
+print("\n\nTerm Frequency-Inverse Document Frequency algorithm:\n\n", tfidf_out)
+bow_out.to_csv("../Data/BoW_output.csv")
+lsa_out.to_csv("../Data/LSA_output.csv")
+tfidf_out.to_csv("../Data/TF-IDF_output.csv")

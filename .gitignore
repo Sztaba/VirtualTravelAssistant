@@ -1,4 +1,6 @@
 api_key.txt
 .idea
 DataGenerator/*txt
+Data/*csv
+tfidfExample.ipynb
 */__pycache__
