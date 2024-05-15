@@ -1,14 +1,39 @@
 import pandas as pd
 from nltk.tokenize import RegexpTokenizer
+from nltk.tokenize import word_tokenize
+from nltk.stem import WordNetLemmatizer
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.decomposition import TruncatedSVD
-import basic
+# import basic
+import inflect
 
+def plural_to_singular(word):
+    p = inflect.engine()
+    singular_word = p.singular_noun(word)
+    if singular_word:
+        return singular_word
+    else:
+        return word
+
+# def plural_to_singular(word):
+#     singular_word = TextBlob(word).singularize()
+#     return singular_word
+def preprocessAndTokenize(text: str) -> list[str]:
+    preproccessed = preprocess(text)
+    return tokenize(preproccessed)
+def preprocess(text: str) -> str:
+    s = text.replace('_', ' ').replace(',', ' ').replace("'", "").replace(".", "").replace("#", "")
+    return s
+def tokenize(text: str) -> list[str]:
+    words = word_tokenize(text)
+    lemmatizer = WordNetLemmatizer()
+    lemmatized_words = [plural_to_singular(lemmatizer.lemmatize(word)) for word in words]
+    return lemmatized_words
 
 def bag_of_words(documents: list[str]) -> pd.DataFrame:
     bow = {}
     for i, d in enumerate(documents):
-        words = basic.tokenize(basic.preprocess(d))
+        words = tokenize(preprocess(d))
         for key in words:
             bow[key] = bow.get(key, [0] * (len(documents) + 1))
             bow[key][i] += 1
@@ -23,7 +48,7 @@ def lsa(documents: list[str]) -> pd.DataFrame:
     tfidf = TfidfVectorizer(lowercase=True,
                             stop_words='english',
                             ngram_range=(1, 1),
-                            tokenizer=tokenizer.tokenize)
+                            tokenizer=preprocessAndTokenize)
     train_data = tfidf.fit_transform(documents)
 
     num_components = 5
@@ -43,7 +68,7 @@ def tfidf(documents: list[str]) -> {}:
     tfidf_vectorizer = TfidfVectorizer(lowercase=True,
                                        stop_words='english',
                                        ngram_range=(1, 1),
-                                       tokenizer=tokenizer.tokenize)
+                                       tokenizer=preprocessAndTokenize)
     tfidf_vector = tfidf_vectorizer.fit_transform(documents)
     text_titles = ["doc" + str(i + 1) for i in range(len(documents))]
     tfidf_df = pd.DataFrame(tfidf_vector.toarray(), index=text_titles,
@@ -65,7 +90,25 @@ def all_algorithms(doc_list: list[str], display: bool = False, save_csv: bool = 
         print("\n\nLatent Semantic Indexing/Analysis algorithm:\n\n", lsa_out)
         print("\n\nTerm Frequency-Inverse Document Frequency algorithm:\n\n", tfidf_out)
     if save_csv:
-        bow_out.to_csv("../Data/BoW_output.csv")
-        lsa_out.to_csv("../Data/LSA_output.csv")
-        tfidf_out.to_csv("../Data/TF-IDF_output.csv")
+        bow_out.to_csv("Data/BoW_output.csv")
+        lsa_out.to_csv("Data/LSA_output.csv")
+        tfidf_out.to_csv("Data/TF-IDF_output.csv")
     return {'BoW': bow_out, 'LSA': lsa_out, 'TF-IDF': tfidf_out}
+
+def create_weighted_lsa(lsa: pd.DataFrame, tfidf: pd.DataFrame) -> pd.DataFrame:
+    filtered_tfIdf = tfidf[tfidf['tfidf'] > 0].sort_values(by="tfidf", ascending=False)
+    newRow = {}
+    for c in lsa:
+        topic = list(lsa[c])
+        s = 0.0
+        for w in topic:
+            if w in list(filtered_tfIdf['term']):
+                found = list((filtered_tfIdf[filtered_tfIdf['term'] == w])['tfidf'])
+                found = [float(i) for i in found]
+                s += sum(found)
+        newRow[c] = s
+    lsa.loc['Total TF-IDF score'] = newRow
+    sorted_columns = sorted(lsa.columns, key=lambda x: lsa.loc['Total TF-IDF score', x], reverse=True)
+    lsa_reordered = lsa[sorted_columns]
+    return lsa_reordered
+
