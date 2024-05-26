@@ -55,3 +55,9 @@ def getPoisForTfidf(pois, tfidf: pd.DataFrame):
             selected_pois.append({'tfidf_total':filtered['tfidf'].sum(), 'poi': poi})
     sorted_list = sorted(selected_pois, key=lambda x: x['tfidf_total'], reverse=True)
     return sorted_list
+
+def getListOfPoisShort(pois) -> list[dict]:
+    pois_list = []
+    for poi in pois:
+        pois_list.append({'name': poi['name'], 'kinds': poi['kinds'], 'point': poi['point']})
+    return pois_list
