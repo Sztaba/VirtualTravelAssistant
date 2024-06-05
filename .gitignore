@@ -4,3 +4,4 @@ DataGenerator/*txt
 Data/*csv
 tfidfExample.ipynb
 */__pycache__
+cache
