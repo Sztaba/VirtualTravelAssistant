@@ -21,10 +21,10 @@ def stage_one(pois):
      # Create minimum spanning tree
         G = nx.Graph()
         for poi in pois:
-            G.add_node(poi['name'], pos=(poi['lat'], poi['lon']))
+            G.add_node(poi['name'], pos=(poi['point']['lat'], poi['point']['lon']))
         for i in range(len(pois)):
             for j in range(i + 1, len(pois)):
-                G.add_edge(pois[i]['name'], pois[j]['name'], weight=ox.distance.great_circle_vec((pois[i]['lat'], pois[i]['lon']), (pois[j]['lat'], pois[j]['lon'])))
+                G.add_edge(pois[i]['name'], pois[j]['name'], weight=ox.distance.great_circle_vec(pois[i]['point']['lat'], pois[i]['point']['lon'], pois[j]['point']['lat'], pois[j]['point']['lon']))
         T = nx.minimum_spanning_tree(G)
         pos = nx.get_node_attributes(T, 'pos')
         nx.draw(T, pos, with_labels=True)
@@ -42,7 +42,8 @@ def stage_two(T, pos):
 
 def stage_three(eulerian_path, pos):
      # Estimate the shortest path
-    shortest_path = nx.shortest_path(eulerian_path, 'start')
+    eulerian_path = nx.DiGraph(eulerian_path)
+    shortest_path = nx.shortest_path(eulerian_path, 'Notre-Dame')
     print(shortest_path)
 
     # Display the shortest path calculated from the Eulerian path

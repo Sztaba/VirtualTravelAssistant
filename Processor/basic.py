@@ -1,6 +1,6 @@
 from nltk.tokenize import word_tokenize
 from nltk.stem import WordNetLemmatizer
-from textblob import TextBlob
+# from textblob import TextBlob
 import inflect
 
 def plural_to_singular(word):

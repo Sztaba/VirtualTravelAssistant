@@ -77,23 +77,23 @@ def tfidf(documents: list[str]) -> {}:
     tfidf_df.stack().reset_index()
     tfidf_df = tfidf_df.stack().reset_index()
     tfidf_df = tfidf_df.rename(columns={0: 'tfidf', 'level_0': 'document', 'level_1': 'term', 'level_2': 'term'})
-    # top_tfidf = tfidf_df.sort_values(by=['document', 'tfidf'], ascending=[True, False]).groupby(['document']).head(10)
-    return tfidf_df
+    top_tfidf = tfidf_df.sort_values(by='tfidf', ascending=False)
+    return top_tfidf
 
 def all_algorithms(doc_list: list[str], display: bool = False, save_csv: bool = False) -> dict[str:pd.DataFrame]:
-    bow_out = bag_of_words(doc_list)
+    # bow_out = bag_of_words(doc_list)
     lsa_out = lsa(doc_list)
     tfidf_out = tfidf(doc_list)
 
     if display:
-        print("\nBag of Words algorithm:\n\n", bow_out)
+        # print("\nBag of Words algorithm:\n\n", bow_out)
         print("\n\nLatent Semantic Indexing/Analysis algorithm:\n\n", lsa_out)
         print("\n\nTerm Frequency-Inverse Document Frequency algorithm:\n\n", tfidf_out)
     if save_csv:
-        bow_out.to_csv("Data/BoW_output.csv")
+        # bow_out.to_csv("Data/BoW_output.csv")
         lsa_out.to_csv("Data/LSA_output.csv")
         tfidf_out.to_csv("Data/TF-IDF_output.csv")
-    return {'BoW': bow_out, 'LSA': lsa_out, 'TF-IDF': tfidf_out}
+    return {'LSA': lsa_out, 'TF-IDF': tfidf_out}
 
 def create_weighted_lsa(lsa: pd.DataFrame, tfidf: pd.DataFrame) -> pd.DataFrame:
     filtered_tfIdf = tfidf[tfidf['tfidf'] > 0].sort_values(by="tfidf", ascending=False)
@@ -112,3 +112,14 @@ def create_weighted_lsa(lsa: pd.DataFrame, tfidf: pd.DataFrame) -> pd.DataFrame:
     lsa_reordered = lsa[sorted_columns]
     return lsa_reordered
 
+def sortFinalPoi(poi):
+    lsa_topics = poi["lsa_topics"]
+    # Length of the longest topic list
+    longest_topic_length = max((len(v) for v in lsa_topics.values()), default=0)
+    # Number of topics
+    num_topics = len(lsa_topics)
+    # TF-IDF total
+    tfidf_total = poi["tfidf_total"]
+    # Rate
+    rate = poi["rate"]
+    return (longest_topic_length, num_topics, tfidf_total, rate)

@@ -2,13 +2,13 @@ import pandas as pd
 import networkx as nx
 import osmnx as ox
 from matplotlib import pyplot as plt
-from abc import ABC, abstractmethod, property
-from Processor.lda import TopicModel
-from Processor.algorithms import all_algorithms, create_weighted_lsa
-from Processor.assistant import getPoisForWeightedLsaAllTopics, getListOfPoisShort
+from abc import ABC, abstractmethod
+from Processor.algorithms import all_algorithms, create_weighted_lsa, sortFinalPoi
+from Processor.assistant import getPoisForWeightedLsaAllTopics, getListOfPoisShort, getPoisForTfidfAndLsa
 from Downloader.poiDownloader import getPoisCityRadius
-from graphing import stage_one, stage_two, stage_three, stage_four
+from .graphing import stage_one, stage_two, stage_three, stage_four
 from typing import List, Any
+
 class Trip(ABC):
     @abstractmethod
     def __init__(self, name: str, email: str, city:str, documents_path:str, api_key:str) -> None:
@@ -49,7 +49,7 @@ class Trip(ABC):
 
 
 class HumanTraveller(Trip):
-    def __init__(self, name: str, email: str, city:str, documents_path: str, api_key) -> None:
+    def __init__(self, name: str, email: str, city:str, documents_path: list[str], api_key) -> None:
         self._name = name
         self._email = email
         self._city = city
@@ -89,11 +89,12 @@ class HumanTraveller(Trip):
         self._city_points_of_interest = getPoisCityRadius(self._city, 20000, self.api_key)
 
     def _analyse_documents(self) -> None:
-        result = all_algorithms(self._documents, display=False, save_csv=False)
-        self._weighted_lsa = create_weighted_lsa(result['LSA'], result['TF-IDF'])
+        self._result = all_algorithms(self._documents, display=False, save_csv=False)
+        self._weighted_lsa = create_weighted_lsa(self._result['LSA'], self._result['TF-IDF'])
 
     def _select_pois(self) -> None:
-        self._selected_pois = getPoisForWeightedLsaAllTopics(self._city_points_of_interest, self._weighted_lsa)
+        pois_with_info = getPoisForTfidfAndLsa(self._city_points_of_interest, self._result['TF-IDF'], self._weighted_lsa)
+        self._selected_pois = sorted(pois_with_info, key=sortFinalPoi, reverse=True)[:10]
     def get_final_topics(self) -> pd.DataFrame:
         return self._weighted_lsa
 
@@ -109,7 +110,7 @@ class HumanTraveller(Trip):
         pois = getListOfPoisShort(self._selected_pois)
 
         for poi in pois:
-            poi_location = (poi['lat'], poi['lon'])
+            poi_location = (poi['point']['lat'], poi['point']['lon'])
             nearest_node = ox.get_nearest_node(Graph, poi_location)
             Graph.add_node(nearest_node, pos=poi_location)
             Graph.add_edge(nearest_node, poi_location)
@@ -120,7 +121,7 @@ class HumanTraveller(Trip):
     def trip_planner(self):
         pois = getListOfPoisShort(self._selected_pois)
         T, pos = stage_one(pois)
-        eulerian_path = stage_two(T, pos)
-        shortest_path = stage_three(eulerian_path, pos)
-        optimized_path = stage_four(shortest_path, pos)
-        return optimized_path
+        # eulerian_path = stage_two(T, pos)
+        # shortest_path = stage_three(eulerian_path, pos)
+        # optimized_path = stage_four(eulerian_path, pos)
+        # return optimized_path
