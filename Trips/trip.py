@@ -10,7 +10,7 @@ from Processor.assistant import (
     getPoisForTfidfAndLsa,
 )
 from Downloader.poiDownloader import getPoisCityRadius
-from .graphing import stage_one, stage_two, stage_three, stage_four
+from .graphing import stage_one, stage_two, stage_three, stage_four, create_and_plot_routes, concat_graph_routes
 from typing import List, Any
 
 
@@ -57,7 +57,7 @@ class Trip(ABC):
 
 class HumanTraveller(Trip):
     def __init__(
-        self, name: str, email: str, city: str, documents_path: list[str], api_key
+        self, name: str, email: str, city: str, documents_path: list[str], api_key, trip_type: str = 'all'
     ) -> None:
         self._name = name
         self._email = email
@@ -65,6 +65,7 @@ class HumanTraveller(Trip):
         self._documents = []
         self._documents_path = documents_path
         self.api_key = api_key
+        self.trip_type = trip_type
         self._load_documents()
         self._analyse_documents()
         self._load_city_points_of_interest()
@@ -86,11 +87,16 @@ class HumanTraveller(Trip):
 
     @property
     def city_points_of_interest(self) -> Any:
-        pass
+        return self._city_points_of_interest
 
     @property
     def documents(self) -> List[str]:
         return self._documents
+
+    @property
+    def graph_pois(self) -> List[dict]:
+        return getListOfPoisShort(self._selected_pois)
+
 
     def _load_documents(self) -> None:
         for file_name in self._documents_path:
@@ -124,7 +130,7 @@ class HumanTraveller(Trip):
         return set([poi["name"] for poi in pois_short])
 
     def _preload_graph(self) -> None:
-        self.Graph = ox.graph_from_place(self._city, network_type="drive")
+        self.Graph = ox.graph_from_place(self._city, network_type=self.trip_type)
         self.Graph = ox.add_edge_speeds(self.Graph)
         self.Graph = ox.add_edge_travel_times(self.Graph)
         self._preload_map()
@@ -156,14 +162,21 @@ class HumanTraveller(Trip):
         fig, ax = ox.plot_graph(
             self.Graph, node_color=nc, node_size=ns, node_zorder=2, bbox=bbox
         )
+    def get_routes(self):
+        if self.routes is None:
+            self.trip_planner()
+        return self.routes
 
     def simple_map(self):
         return self.gdf_nodes.loc[self.nodes]
 
     def trip_planner(self):
         pois = getListOfPoisShort(self._selected_pois)
-        T, pos = stage_one(pois)
-        # eulerian_path = stage_two(T, pos)
-        # shortest_path = stage_three(eulerian_path, pos)
-        # optimized_path = stage_four(eulerian_path, pos)
-        # return optimized_path
+        T, pos = stage_one(pois, display=False)
+        G, _ = stage_two(T, pos)
+        tour = stage_three(G, pos)
+        stage_four(G, pos, tour)
+        self.nodes, self.routes = create_and_plot_routes(tour, pos, self.Graph)
+
+    def trip_map(self):
+        return self.gdf_edges.loc[concat_graph_routes(self.get_routes())]

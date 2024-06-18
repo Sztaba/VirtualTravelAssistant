@@ -1,61 +1,121 @@
 import osmnx as ox
 import networkx as nx
 import matplotlib.pyplot as plt
-def two_opt(shortest_path, pos):
-    for i in range(len(shortest_path)):
-        for j in range(i + 1, len(shortest_path)):
-            new_path = shortest_path.copy()
-            new_path[i:j] = shortest_path[j - 1:i - 1:-1]
-            if path_length(new_path, pos) < path_length(shortest_path, pos):
-                shortest_path = new_path
-    return shortest_path
-
-def path_length(path, pos):
-    length = 0
-    for i in range(len(path) - 1):
-        length += ox.distance.great_circle_vec(pos[path[i]], pos[path[i + 1]])
-    return length
 
 
-def stage_one(pois):
-     # Create minimum spanning tree
-        G = nx.Graph()
-        for poi in pois:
-            G.add_node(poi['name'], pos=(poi['point']['lat'], poi['point']['lon']))
-        for i in range(len(pois)):
-            for j in range(i + 1, len(pois)):
-                G.add_edge(pois[i]['name'], pois[j]['name'], weight=ox.distance.great_circle_vec(pois[i]['point']['lat'], pois[i]['point']['lon'], pois[j]['point']['lat'], pois[j]['point']['lon']))
-        T = nx.minimum_spanning_tree(G)
-        pos = nx.get_node_attributes(T, 'pos')
+def stage_one(pois, display=True):
+    # Create minimum spanning tree
+    G = nx.Graph()
+    for poi in pois:
+        G.add_node(poi["name"], pos=(poi["point"]["lat"], poi["point"]["lon"]))
+    for i in range(len(pois)):
+        for j in range(i + 1, len(pois)):
+            G.add_edge(
+                pois[i]["name"],
+                pois[j]["name"],
+                weight=ox.distance.great_circle_vec(
+                    pois[i]["point"]["lat"],
+                    pois[i]["point"]["lon"],
+                    pois[j]["point"]["lat"],
+                    pois[j]["point"]["lon"],
+                ),
+            )
+    T = nx.minimum_spanning_tree(G)
+    pos = nx.get_node_attributes(T, "pos")
+    if display:
         nx.draw(T, pos, with_labels=True)
         plt.show()
-        return T, pos
+    return T, pos
+
 
 def stage_two(T, pos):
-     # Find the Eulerian path
-    eulerian_path = nx.eulerize(T)
-    print(eulerian_path)
-    # Display the Eulerian path
-    nx.draw(eulerian_path, pos, with_labels=True)
+    G = nx.complete_graph(T.nodes)
+    for u, v in G.edges:
+        x1, y1 = pos[u]
+        x2, y2 = pos[v]
+        G[u][v]["length"] = ox.distance.great_circle_vec(y1, x1, y2, x2)
+    nx.draw(G, with_labels=True, font_weight="bold")
     plt.show()
-    return eulerian_path
+    return G, nx.eulerian_circuit(G)
 
-def stage_three(eulerian_path, pos):
-     # Estimate the shortest path
-    eulerian_path = nx.DiGraph(eulerian_path)
-    shortest_path = nx.shortest_path(eulerian_path, 'Notre-Dame')
-    print(shortest_path)
 
-    # Display the shortest path calculated from the Eulerian path
-    nx.draw(shortest_path, pos, with_labels=True)
+def stage_three(G, pos):
+    tour = list(G.nodes)
+    n = len(tour)
+    improved = True
+    while improved:
+        improved = False
+        for i in range(n - 1):
+            for j in range(i + 1, n):
+
+                # two current edges from tour
+                cur1 = (tour[i], tour[i + 1])
+                cur2 = (tour[j], tour[(j + 1) % n])
+                cur_length = G.edges[cur1]["length"] + G.edges[cur2]["length"]
+
+                # two 'new' edges for the tour
+                new1 = (tour[i], tour[j])
+                new2 = (tour[i + 1], tour[(j + 1) % n])
+                new_length = G.edges[new1]["length"] + G.edges[new2]["length"]
+
+                # update the tour, if improved
+                if new_length < cur_length:
+                    print("swapping edges", cur1, cur2, "with", new1, new2)
+                    tour[i + 1 : j + 1] = tour[i + 1 : j + 1][::-1]
+                    improved = True
+
+                    # draw the new tour
+                    tour_edges = [(tour[i - 1], tour[i]) for i in range(n)]
+                    # plt.figure()  # call this to create a new figure, instead of drawing over the previous one(s)
+                    # nx.draw(
+                    #     G.edge_subgraph(tour_edges),
+                    #     pos=pos,
+                    #     with_labels=True,
+                    #     font_weight="bold",
+                    # )
+                    # plt.show()
+    return tour
+
+
+def stage_four(G, pos, tour):
+    tour_edges = [(tour[i], tour[i+1]) for i in range(len(tour)-1)]
+    plt.figure() 
+    nx.draw(
+        G.edge_subgraph(tour_edges), pos=pos, with_labels=True, font_weight="bold"
+    )
     plt.show()
 
 
-def stage_four(shortest_path, pos):
-    # Optimize the shortest path
-    optimized_path = two_opt(shortest_path, pos)
-    print(optimized_path)
+def concat_graph_routes(routes):
+    route = list()
+    for r in routes:
+        route = route[:-1] + r
+    return route
 
-    # Display the optimized path
-    nx.draw(optimized_path, pos, with_labels=True)
+
+def create_and_plot_routes(tour, pos, OX_Graph):
+    nodes = []
+    for t in tour:
+        nodes.append(ox.distance.nearest_nodes(OX_Graph, pos[t][1], pos[t][0]))
+    print(len(nodes))
+    routes = []
+    for i in range(len(nodes) - 1):
+        route = nx.shortest_path(OX_Graph, nodes[i], nodes[i + 1], weight="length")
+        routes.append(route)
+    
+    base_colors = ["r", "g", "b", "y", "m", "c", "k"]
+
+    colors = [base_colors[i % len(base_colors)] for i in range(len(routes))]
+    
+    print(len(routes))
+
+    print(len(colors))
+
+    bbox = ox.utils_geo.bbox_from_point((pos[tour[0]][0], pos[tour[0]][1]), dist=2000)
+    fig, ax = ox.plot_graph_routes(
+        OX_Graph, routes, route_colors=colors, route_linewidth=6, bbox=bbox
+    )
     plt.show()
+    return nodes, routes
+
+
