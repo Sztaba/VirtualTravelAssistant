@@ -198,7 +198,7 @@ class HumanTraveller(Trip):
         _, _ = stage_one(pois, display=True)
         tour = stage_three(G, pos)
         stage_four(G, pos, tour)
-        self.nodes, self.routes = create_and_plot_routes(tour, pos, self.Graph, distance=distance)
-
+        self.nodes, self.routes, fig1, ax1, fig2, ax2 = create_and_plot_routes(tour, pos, self.Graph, distance=distance)
+        return fig1, ax1, fig2, ax2
     def trip_map(self):
         return self.gdf_edges.loc[concat_graph_routes(self.get_routes())]

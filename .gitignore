@@ -5,3 +5,4 @@ Data/*csv
 tfidfExample.ipynb
 */__pycache__
 cache
+*.csv
