@@ -143,6 +143,9 @@ class HumanTraveller(Trip):
 
     def _preload_map(self) -> None:
         self.gdf_nodes, self.gdf_edges = ox.graph_to_gdfs(self.Graph)
+        # Save the geopandas dataframes to csv files
+        self.gdf_nodes.to_csv(f"{self.name}_gdf_nodes.csv")
+        self.gdf_edges.to_csv(f"{self.name}_gdf_edges.csv")
 
     def _load_nodes(self):
         pois = getListOfPoisShort(self._selected_pois)
