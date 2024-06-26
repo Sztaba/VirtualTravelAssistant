@@ -6,3 +6,4 @@ tfidfExample.ipynb
 */__pycache__
 cache
 *.csv
+*.png
