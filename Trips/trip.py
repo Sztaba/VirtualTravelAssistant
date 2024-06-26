@@ -2,6 +2,7 @@ import pandas as pd
 import networkx as nx
 import osmnx as ox
 from matplotlib import pyplot as plt
+import random 
 from abc import ABC, abstractmethod
 from Processor.algorithms import all_algorithms, create_weighted_lsa, sortFinalPoi
 from Processor.assistant import (
@@ -105,7 +106,7 @@ class HumanTraveller(Trip):
 
     def _load_city_points_of_interest(self) -> None:
         self._city_points_of_interest = getPoisCityRadius(
-            self._city, 20000, self.api_key
+            self._city, 80000, self.api_key
         )
 
     def _analyse_documents(self) -> None:
@@ -118,9 +119,14 @@ class HumanTraveller(Trip):
         pois_with_info = getPoisForTfidfAndLsa(
             self._city_points_of_interest, self._result["TF-IDF"], self._weighted_lsa
         )
-        self._selected_pois = sorted(pois_with_info, key=sortFinalPoi, reverse=True)[
-            :10
-        ]
+        
+        sorted_pois = sorted(pois_with_info, key=sortFinalPoi, reverse=True)
+        # self._selected_pois = sorted_pois[:10]
+        # Select random 10 pois
+        self._selected_pois = []
+        for i in range(10):
+            self._selected_pois.append(sorted_pois[random.randint(0, len(sorted_pois)-1)])
+        
 
     def get_final_topics(self) -> pd.DataFrame:
         return self._weighted_lsa
