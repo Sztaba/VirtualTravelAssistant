@@ -28,14 +28,15 @@ def stage_one(pois, display=True):
     return T, pos
 
 
-def stage_two(T, pos):
+def stage_two(T, pos, display=True):
     G = nx.complete_graph(T.nodes)
     for u, v in G.edges:
         x1, y1 = pos[u]
         x2, y2 = pos[v]
         G[u][v]["length"] = ox.distance.great_circle_vec(y1, x1, y2, x2)
-    nx.draw(G, with_labels=True, font_weight="bold")
-    plt.show()
+    if display:
+        nx.draw(G, with_labels=True, font_weight="bold")
+        plt.show()
     return G, nx.eulerian_circuit(G)
 
 
@@ -60,7 +61,7 @@ def stage_three(G, pos):
 
                 # update the tour, if improved
                 if new_length < cur_length:
-                    print("swapping edges", cur1, cur2, "with", new1, new2)
+                    # print("swapping edges", cur1, cur2, "with", new1, new2)
                     tour[i + 1 : j + 1] = tour[i + 1 : j + 1][::-1]
                     improved = True
 
@@ -93,11 +94,10 @@ def concat_graph_routes(routes):
     return route
 
 
-def create_and_plot_routes(tour, pos, OX_Graph):
+def create_and_plot_routes(tour, pos, OX_Graph, distance):
     nodes = []
     for t in tour:
         nodes.append(ox.distance.nearest_nodes(OX_Graph, pos[t][1], pos[t][0]))
-    print(len(nodes))
     routes = []
     for i in range(len(nodes) - 1):
         route = nx.shortest_path(OX_Graph, nodes[i], nodes[i + 1], weight="length")
@@ -106,16 +106,28 @@ def create_and_plot_routes(tour, pos, OX_Graph):
     base_colors = ["r", "g", "b", "y", "m", "c", "k"]
 
     colors = [base_colors[i % len(base_colors)] for i in range(len(routes))]
-    
-    print(len(routes))
-
-    print(len(colors))
-
-    bbox = ox.utils_geo.bbox_from_point((pos[tour[0]][0], pos[tour[0]][1]), dist=1000)
+    bbox = ox.utils_geo.bbox_from_point((pos[tour[0]][0], pos[tour[0]][1]), dist=distance)
     fig, ax = ox.plot_graph_routes(
         OX_Graph, routes, route_colors=colors, route_linewidth=6, bbox=bbox, node_size=0
     )
     plt.show()
+
+    route = concat_graph_routes(routes)
+
+    fig, ax = ox.plot_graph_route(
+        OX_Graph, route, route_linewidth=6, node_size=0, bbox=bbox
+    )
+    plt.show()
+
     return nodes, routes
 
+
+def one_big_route_from_routes(routes, OX_Graph):
+    route = concat_graph_routes(routes)
+
+    fig, ax = ox.plot_graph_route(
+        OX_Graph, route, route_linewidth=6, node_size=0
+    )
+    plt.show()
+    return route
 

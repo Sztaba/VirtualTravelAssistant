@@ -11,7 +11,15 @@ from Processor.assistant import (
     getPoisForTfidfAndLsa,
 )
 from Downloader.poiDownloader import getPoisCityRadius
-from .graphing import stage_one, stage_two, stage_three, stage_four, create_and_plot_routes, concat_graph_routes
+from .graphing import (
+    stage_one,
+    stage_two,
+    stage_three,
+    stage_four,
+    create_and_plot_routes,
+    concat_graph_routes,
+    one_big_route_from_routes
+)
 from typing import List, Any
 
 
@@ -175,17 +183,22 @@ class HumanTraveller(Trip):
         if self.routes is None:
             self.trip_planner()
         return self.routes
+    
+    def plot_route(self):
+        route = one_big_route_from_routes(self.routes, self.Graph)
+        return self.gdf_edges.loc[route]
 
     def simple_map(self):
         return self.gdf_nodes.loc[self.nodes]
 
-    def trip_planner(self):
+    def trip_planner(self, distance=2000):
         pois = getListOfPoisShort(self._selected_pois)
         T, pos = stage_one(pois, display=False)
-        G, _ = stage_two(T, pos)
+        G, _ = stage_two(T, pos, display=True)
+        _, _ = stage_one(pois, display=True)
         tour = stage_three(G, pos)
         stage_four(G, pos, tour)
-        self.nodes, self.routes = create_and_plot_routes(tour, pos, self.Graph)
+        self.nodes, self.routes = create_and_plot_routes(tour, pos, self.Graph, distance=distance)
 
     def trip_map(self):
         return self.gdf_edges.loc[concat_graph_routes(self.get_routes())]
