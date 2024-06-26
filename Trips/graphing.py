@@ -111,9 +111,9 @@ def create_and_plot_routes(tour, pos, OX_Graph):
 
     print(len(colors))
 
-    bbox = ox.utils_geo.bbox_from_point((pos[tour[0]][0], pos[tour[0]][1]), dist=2000)
+    bbox = ox.utils_geo.bbox_from_point((pos[tour[0]][0], pos[tour[0]][1]), dist=1000)
     fig, ax = ox.plot_graph_routes(
-        OX_Graph, routes, route_colors=colors, route_linewidth=6, bbox=bbox
+        OX_Graph, routes, route_colors=colors, route_linewidth=6, bbox=bbox, node_size=0
     )
     plt.show()
     return nodes, routes
