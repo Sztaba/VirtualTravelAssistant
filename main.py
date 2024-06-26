@@ -3,22 +3,35 @@ from Downloader import poiDownloader
 from Processor import assistant
 from Processor import algorithms
 from Trips import trip
+import tkinter as tk
+from View import View
 
-city = "Paris"
+
 file = open("api_key.txt", "r")
 apiKey = file.read()
 file.close()
-pois = poiDownloader.getPoisCityRadius(city, 20000, apiKey)
+root = tk.Tk()
+ui = View.UserInterface(root, apiKey)
+root.mainloop()
 
-with open("Data/UserPreferences/info.txt", "r") as file:
-    users = [line.strip() for line in file.readlines()]
 
-for i, u in enumerate(users):
-    doc_contents = []
-    prefix = str(i + 1) + '_' + u + '_'
-    file_names = ["Data/UserPreferences/" + prefix + j for j in ["doc1.txt", "doc2.txt", "doc3.txt"]]
-    human = trip.HumanTraveller(u, "marek.kowalski@gmail.com", city, file_names, apiKey)
-    human.trip_planner()
+
+
+# city = "Paris"
+# file = open("api_key.txt", "r")
+# apiKey = file.read()
+# file.close()
+# pois = poiDownloader.getPoisCityRadius(city, 20000, apiKey)
+#
+# with open("Data/UserPreferences/info.txt", "r") as file:
+#     users = [line.strip() for line in file.readlines()]
+#
+# for i, u in enumerate(users):
+#     doc_contents = []
+#     prefix = str(i + 1) + '_' + u + '_'
+#     file_names = ["Data/UserPreferences/" + prefix + j for j in ["doc1.txt", "doc2.txt", "doc3.txt"]]
+#     human = trip.HumanTraveller(u, "marek.kowalski@gmail.com", city, file_names, apiKey)
+#     human.trip_planner()
     # human.simple_graph()
 
     # for file_name in file_names:
