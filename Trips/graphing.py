@@ -110,16 +110,16 @@ def create_and_plot_routes(tour, pos, OX_Graph, distance):
     fig, ax = ox.plot_graph_routes(
         OX_Graph, routes, route_colors=colors, route_linewidth=6, bbox=bbox, node_size=0
     )
-    plt.show()
 
-    route = concat_graph_routes(routes)
 
-    fig2, ax2 = ox.plot_graph_route(
-        OX_Graph, route, route_linewidth=6, node_size=0, bbox=bbox
-    )
-    plt.show()
+    # route = concat_graph_routes(routes)
+    #
+    # fig2, ax2 = ox.plot_graph_route(
+    #     OX_Graph, route, route_linewidth=6, node_size=0, bbox=bbox
+    # )
+    #
 
-    return nodes, routes, fig, ax, fig2, ax2 
+    return nodes, routes, fig, ax, None, None
 
 
 def one_big_route_from_routes(routes, OX_Graph):

@@ -3,13 +3,17 @@ from tkinter import filedialog, messagebox
 import geopandas as gpd
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.pyplot as plt
-from Trips import trip
+from Trips import trip, graphing
 
 class UserInterface:
     def __init__(self, root, api_key):
         self.root = root
-        self.apiKey = api_key
         self.root.title("User Interface with Map")
+        self.apiKey = api_key
+
+        self.tour = None
+        self.pos = None
+        self.graph = None
 
         # Create a frame for the map (placeholder)
         self.map_frame = tk.Frame(root, width=800, height=600, bg='lightgray')
@@ -18,6 +22,10 @@ class UserInterface:
         # Create a frame for the input fields
         self.input_frame = tk.Frame(root)
         self.input_frame.pack(side=tk.BOTTOM, fill=tk.X, padx=10, pady=10)
+
+        # Create a frame for the right-side controls
+        self.controls_frame = tk.Frame(root)
+        self.controls_frame.pack(side=tk.RIGHT, fill=tk.Y, padx=10, pady=10)
 
         # Name input
         tk.Label(self.input_frame, text="Name:").grid(row=0, column=0, padx=5, pady=5)
@@ -45,6 +53,17 @@ class UserInterface:
         self.submit_button = tk.Button(self.input_frame, text="Submit", command=self.submit)
         self.submit_button.grid(row=4, column=0, columnspan=3, pady=10)
 
+        # Distance input and Zoom button on the right side
+        tk.Label(self.controls_frame, text="Distance:").grid(row=0, column=0, padx=5, pady=5)
+        self.distance_entry = tk.Entry(self.controls_frame)
+        self.distance_entry.grid(row=0, column=1, padx=5, pady=5)
+        self.distance_entry.insert(0, "2000")
+        self.distance_entry.config(state='disabled')
+
+        self.zoom_button = tk.Button(self.controls_frame, text="Zoom", command=self.zoom)
+        self.zoom_button.grid(row=0, column=2, padx=5, pady=5)
+        self.zoom_button.config(state='disabled')
+
     def browse_files(self):
         filenames = filedialog.askopenfilenames(filetypes=[("Text files", "*.txt")])
         if filenames:
@@ -64,22 +83,18 @@ class UserInterface:
 
         try:
             filepaths_list = filepaths.split(', ')
-            # For demonstration, we will create a simple GeoDataFrame and plot it
+            # Create a HumanTraveller object and plan the trip
             human = trip.HumanTraveller(f'{name}_{surname}', "---", city, filepaths_list, self.apiKey)
-            # human.trip_planner()
-            self.plot_map(filepaths_list)
+            self.tour, self.pos, self.graph = human.trip_planner()
+            nodes, routes, fig, ax, fig2, ax2 = graphing.create_and_plot_routes(self.tour, self.pos, self.graph, distance=2000)
+            self.plot_map(fig, ax)
+            # After plotting the map, add the Distance entry and Zoom button
+            self.enable_additional_inputs()
         except Exception as e:
             messagebox.showerror("Error", f"An error occurred: {str(e)}")
 
-    def plot_map(self, filepaths):
-        # Create a simple GeoDataFrame for demonstration
+    def plot_map(self, fig, ax):
         try:
-            # Load a GeoDataFrame (this is just an example, replace with your logic)
-            world = gpd.read_file(gpd.datasets.get_path('naturalearth_lowres'))
-            fig, ax = plt.subplots(1, 1, figsize=(8, 6))
-            world.plot(ax=ax)
-
-            # Clear the map frame and add the new canvas
             for widget in self.map_frame.winfo_children():
                 widget.destroy()
             canvas = FigureCanvasTkAgg(fig, master=self.map_frame)
@@ -87,3 +102,16 @@ class UserInterface:
             canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=True)
         except Exception as e:
             raise RuntimeError(f"Failed to plot map: {e}")
+
+    def enable_additional_inputs(self):
+        self.distance_entry.config(state='normal')
+        self.zoom_button.config(state='normal')
+
+    def zoom(self):
+        distance = self.distance_entry.get().strip()
+        try:
+            nodes, routes, fig, ax, fig2, ax2 = graphing.create_and_plot_routes(self.tour, self.pos, self.graph, distance=int(distance))
+            self.plot_map(fig, ax)
+            print(f"Zooming to distance: {distance}")
+        except Exception as e:
+            messagebox.showerror("Error", f"An error occurred during zoom: {str(e)}")

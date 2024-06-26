@@ -114,7 +114,7 @@ class HumanTraveller(Trip):
 
     def _load_city_points_of_interest(self) -> None:
         self._city_points_of_interest = getPoisCityRadius(
-            self._city, 80000, self.api_key
+            self._city, 30000, self.api_key
         )
 
     def _analyse_documents(self) -> None:
@@ -194,11 +194,11 @@ class HumanTraveller(Trip):
     def trip_planner(self, distance=2000):
         pois = getListOfPoisShort(self._selected_pois)
         T, pos = stage_one(pois, display=False)
-        G, _ = stage_two(T, pos, display=True)
-        _, _ = stage_one(pois, display=True)
+        G, _ = stage_two(T, pos, display=False)
+        _, _ = stage_one(pois, display=False)
         tour = stage_three(G, pos)
-        stage_four(G, pos, tour)
-        self.nodes, self.routes, fig1, ax1, fig2, ax2 = create_and_plot_routes(tour, pos, self.Graph, distance=distance)
-        return fig1, ax1, fig2, ax2
+        #stage_four(G, pos, tour)
+        # self.nodes, self.routes, fig1, ax1, fig2, ax2 = create_and_plot_routes(tour, pos, self.Graph, distance=distance)
+        return tour, pos, self.Graph
     def trip_map(self):
         return self.gdf_edges.loc[concat_graph_routes(self.get_routes())]
