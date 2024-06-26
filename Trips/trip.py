@@ -2,6 +2,7 @@ import pandas as pd
 import networkx as nx
 import osmnx as ox
 from matplotlib import pyplot as plt
+import random 
 from abc import ABC, abstractmethod
 from Processor.algorithms import all_algorithms, create_weighted_lsa, sortFinalPoi
 from Processor.assistant import (
@@ -10,7 +11,15 @@ from Processor.assistant import (
     getPoisForTfidfAndLsa,
 )
 from Downloader.poiDownloader import getPoisCityRadius
-from .graphing import stage_one, stage_two, stage_three, stage_four, create_and_plot_routes, concat_graph_routes
+from .graphing import (
+    stage_one,
+    stage_two,
+    stage_three,
+    stage_four,
+    create_and_plot_routes,
+    concat_graph_routes,
+    one_big_route_from_routes
+)
 from typing import List, Any
 
 
@@ -105,7 +114,7 @@ class HumanTraveller(Trip):
 
     def _load_city_points_of_interest(self) -> None:
         self._city_points_of_interest = getPoisCityRadius(
-            self._city, 20000, self.api_key
+            self._city, 80000, self.api_key
         )
 
     def _analyse_documents(self) -> None:
@@ -118,9 +127,14 @@ class HumanTraveller(Trip):
         pois_with_info = getPoisForTfidfAndLsa(
             self._city_points_of_interest, self._result["TF-IDF"], self._weighted_lsa
         )
-        self._selected_pois = sorted(pois_with_info, key=sortFinalPoi, reverse=True)[
-            :10
-        ]
+        
+        sorted_pois = sorted(pois_with_info, key=sortFinalPoi, reverse=True)
+        # self._selected_pois = sorted_pois[:10]
+        # Select random 10 pois
+        self._selected_pois = []
+        for i in range(10):
+            self._selected_pois.append(sorted_pois[random.randint(0, len(sorted_pois)-1)])
+        
 
     def get_final_topics(self) -> pd.DataFrame:
         return self._weighted_lsa
@@ -137,6 +151,9 @@ class HumanTraveller(Trip):
 
     def _preload_map(self) -> None:
         self.gdf_nodes, self.gdf_edges = ox.graph_to_gdfs(self.Graph)
+        # Save the geopandas dataframes to csv files
+        self.gdf_nodes.to_csv(f"{self.name}_gdf_nodes.csv")
+        self.gdf_edges.to_csv(f"{self.name}_gdf_edges.csv")
 
     def _load_nodes(self):
         pois = getListOfPoisShort(self._selected_pois)
@@ -166,17 +183,22 @@ class HumanTraveller(Trip):
         if self.routes is None:
             self.trip_planner()
         return self.routes
+    
+    def plot_route(self):
+        route = one_big_route_from_routes(self.routes, self.Graph)
+        return self.gdf_edges.loc[route]
 
     def simple_map(self):
         return self.gdf_nodes.loc[self.nodes]
 
-    def trip_planner(self):
+    def trip_planner(self, distance=2000):
         pois = getListOfPoisShort(self._selected_pois)
         T, pos = stage_one(pois, display=False)
-        G, _ = stage_two(T, pos)
+        G, _ = stage_two(T, pos, display=True)
+        _, _ = stage_one(pois, display=True)
         tour = stage_three(G, pos)
         stage_four(G, pos, tour)
-        self.nodes, self.routes = create_and_plot_routes(tour, pos, self.Graph)
+        self.nodes, self.routes = create_and_plot_routes(tour, pos, self.Graph, distance=distance)
 
     def trip_map(self):
         return self.gdf_edges.loc[concat_graph_routes(self.get_routes())]
