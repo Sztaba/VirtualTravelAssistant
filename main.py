@@ -1,8 +1,3 @@
-import json
-from Downloader import poiDownloader
-from Processor import assistant
-from Processor import algorithms
-from Trips import trip
 import tkinter as tk
 from View import View
 
@@ -15,7 +10,11 @@ ui = View.UserInterface(root, apiKey)
 root.mainloop()
 
 
-
+# import json
+# from Downloader import poiDownloader
+# from Processor import assistant
+# from Processor import algorithms
+# from Trips import trip
 
 # city = "Paris"
 # file = open("api_key.txt", "r")

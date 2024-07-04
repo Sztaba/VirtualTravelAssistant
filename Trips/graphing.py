@@ -128,6 +128,6 @@ def one_big_route_from_routes(routes, OX_Graph):
     fig, ax = ox.plot_graph_route(
         OX_Graph, route, route_linewidth=6, node_size=0
     )
-    plt.show()
+    # plt.show()
     return route
 
