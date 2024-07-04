@@ -57,7 +57,7 @@ class UserInterface:
 
         # Number of trips input
         tk.Label(self.controls_frame, text="Number of Trips:").grid(row=0, column=0, padx=5, pady=5)
-        self.num_trips_combobox = Combobox(self.controls_frame, values=list(range(1, 11)))
+        self.num_trips_combobox = Combobox(self.controls_frame, values=list(range(1, 8)))
         self.num_trips_combobox.grid(row=0, column=1, padx=5, pady=5)
         self.num_trips_combobox.bind("<<ComboboxSelected>>", self.update_trip_selection)
         self.num_trips_combobox.current(0)
